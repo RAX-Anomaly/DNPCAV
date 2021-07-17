@@ -1,0 +1,120 @@
+--[[
+Strip Corpse Beta
+13JUN2021
+This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License
+Author: RavenAscendant, XCVB
+Contributors: Lucy/Rezy
+--]]
+
+
+
+
+
+
+ini_death = ini_file_ex("items\\settings\\death_outfits.ltx")
+
+visuals = {
+	default ={},
+	dolg ={},
+	army ={},
+	freedom ={},
+	csky ={},
+	stalker ={},
+	ecolog ={},
+	killer ={},
+	greh ={},
+	monolith ={},
+	isg ={},
+	bandit ={},
+	renegade ={},
+
+}
+path = "actors\\dynamic_npc_visuals\\"
+
+function load_visuals()
+
+	
+	for comm,_ in pairs(visuals) do
+		local t = {}
+		local size_t = 0 
+		local f	= getFS()	
+		local flist = f:file_list_open( "$game_meshes$",path..comm.."\\", bit_or(FS.FS_ListFiles,FS.FS_RootOnly))
+		local f_cnt = flist:Size()
+		for	it=0, f_cnt-1 do
+			local file = flist:GetAt(it)
+			size_t = size_t + 1 
+			visuals[comm][size_t] = path..comm.."\\"..file
+		end
+	end
+	visuals.army_npc = visuals.army
+	visuals.greh_npc = visuals.greh
+	
+	
+	
+end
+
+
+
+function get_visual(comm)
+	if visuals[comm] and #visuals[comm] >0 then
+		return	visuals[comm][math.random(1, #visuals[comm])]
+	else
+		return	visuals["default"][math.random(1, #visuals["default"])] or "actors\\stalker_hero_coc\\sviter_3"
+	end
+end
+
+
+function actor_on_item_take_from_box(npc, item)
+	if type(npc) == "number" then
+		npc = level.object_by_id(npc)
+	end
+	
+	if  not npc or npc:id() == 0 then return end --return on actor or nil npc
+	if (not IsStalker(npc)) or  npc:alive() then return end
+	if not (IsOutfit(item)) then 
+		return
+	end 
+	local story_name = get_object_story_id(npc:id())
+	if (story_name ~= nil) then
+		return
+	end
+
+	local o_npc_visual = ini_sys:r_string_ex(item:section(),"npc_visual")
+	if not (o_npc_visual) then
+		return
+	end
+    
+	
+	vis_path_list = str_explode(o_npc_visual, "\\")
+    vis_name_list = vis_path_list and str_explode(vis_path_list[#vis_path_list], "%.")
+    local vis_list = ini_death:r_string_ex("outfit_by_visual", vis_name_list[1])
+    
+    
+    
+    local outfit, helm = vis_list and unpack(str_explode(vis_list, ","))
+
+
+	if outfit == item:section()  then
+		--printf("npc:character_community():%s",npc:character_community())
+		comm =  npc:character_community()
+		if not visuals[comm] then
+			printf("! RAX tell RavenAscendant that %s|%s|%s had a comm of %s", npc.character_name and npc:character_name() or "not human?", npc:name(), npc:section(), comm )
+		end
+		npc:set_visual_name(get_visual(comm))
+	end
+end
+
+function npc_on_get_all_from_corpse(npc, corpse, item, really_take)
+	if really_take then
+		actor_on_item_take_from_box(corpse, item)
+	end
+end
+
+
+
+function on_game_start()
+	load_visuals()
+	RegisterScriptCallback("ActorMenu_on_item_after_move", actor_on_item_take_from_box)
+	RegisterScriptCallback("npc_on_get_all_from_corpse", npc_on_get_all_from_corpse)
+end
+
