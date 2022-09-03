@@ -141,6 +141,10 @@ function get_visual_prot(vis, item)
 end
 
 function is_allowed_comm(npc, item)
+	if npc:get_visual_name().find("fstalker") then --ignore Dux female stalkers.
+		return false
+	end
+
 	local npc_comm = npc:character_community()
 	local outfit_comm = ini_sys:r_string_ex(item:section(),"community") or "no_community"
 	if outfit_comm == " " or outfit_comm == "" then
